@@ -6,7 +6,7 @@ fixed-timestep gameplay logger with an exact replay. It is a prototype, not a pr
 primitive art, mouse + keyboard only.
 
 **Try it:** _(link added when the WebGL build is published)_ — click the game to lock the mouse.
-Best in a desktop browser; the first load is about `SIZE` MB.
+Best in a desktop browser; the first load is about 14 MB.
 
 ## What is in it
 
@@ -16,7 +16,7 @@ Best in a desktop browser; the first load is about `SIZE` MB.
   R + mouse to rotate it. Held objects stay dynamic rigidbodies driven by velocity, so they
   collide with the world and can be stacked. The maximum carry speed and throw speed fall with
   mass, and heavy loads slow the player, so a 25 kg pallet feels different from a 0.5 kg part.
-- **52 interactable objects** of 8 types (small / medium / large box, crate, pallet, paint can,
+- **73 interactable objects** of 8 types (small / medium / large box, crate, pallet, paint can,
   spare part, bottle) with per-type mass, friction, bounciness and collider shape. Dynamic
   bodies use box or capsule colliders only.
 - **Three task types** from JSON: PICK (items from the racks into a tote), PACK (items into a
@@ -112,7 +112,16 @@ Where logs go: on Windows/macOS/Linux builds and in the Editor, `persistentDataP
 in memory and the result screen's **Download log** button saves it through the browser;
 **Open log file...** on the menu loads one back for replay.
 
-Measured size: `MEASURED_SIZE`.
+Measured in the WebGL build (Chrome, this map, 73 tracked objects, player always moving):
+
+| Session | Ticks | Lines | Size | Rate |
+|---|---|---|---|---|
+| PICK order #1042, 36.7 s | 1836 | 1849 | 319 KB | 319 KB/min |
+| PACK order #2077, 60.4 s | 3022 | 3039 | 614 KB | 609 KB/min |
+| LOAD truck A, 87.5 s | 4376 | 4392 | 765 KB | 525 KB/min |
+
+Roughly 150 bytes per tick for the player plus about 120 bytes per moving object per tick; an
+idle object costs nothing after it comes to rest. Tick 0 with all 73 objects is about 9 KB.
 
 ## Adding a task (no code)
 
@@ -150,7 +159,36 @@ unity test --mode EditMode     # task JSON parsing/validation, scoring, log line
 unity test --mode PlayMode     # record 150 physics ticks, replay them, compare every transform; 4-box stack stable 10 s
 ```
 
-`TEST_RESULTS`
+Last run (Unity 6000.0.77f1, `unity test`, 2026-10-10):
+
+```
+EditMode  7/7 passed
+  SessionLogFormatTests.TickLineRoundTripsThroughJsonUtility
+  SessionLogFormatTests.ParseExpandsChangedOnlyTicksIntoFullSnapshots
+  SessionLogFormatTests.ParseRejectsGapsAndUnknownVersions
+  TaskJsonTests.ParsesAFullTaskFile
+  TaskJsonTests.EveryShippedTaskIsValid
+  TaskJsonTests.ValidationReportsBadTypeItemAndCount
+  TaskJsonTests.ScoreAddsBonusPerFullSecondLeft
+PlayMode  3/3 passed
+  ReplayRoundTripTests.ReplayReproducesEveryLoggedTransform
+      150 ticks, 10 objects, worst position error 0.000 mm, log 69284 bytes
+  ReplayRoundTripTests.StackOfFourBoxesStaysStableForTenSeconds
+      max drift 16.7 mm (initial settling), top box still on the stack
+  SceneSmokeTests.SceneBootsBuildsMapLoadsTasksAndRecords
+```
+
+The round-trip test records real PhysX motion (boxes dropped onto a stack) with the same
+`SessionRecorder` the game uses, parses the text, replays it with `ReplayPlayer` onto scrambled
+objects and compares every object at every tick: positions match to the log precision and
+quaternions to 1e-4 per component.
+
+Measured in the WebGL build (Chrome on an Apple-silicon Mac, 1600x900): 115-122 fps; a stack of
+four medium boxes placed by the `stacktest` command settled 18 mm and was asleep after 10 s;
+carrying at walking speed the object trails the hold point by 0.28 m (2 kg box), 0.24 m (15 kg box)
+and 0.19 m (25 kg pallet), and the pallet walk over 6 m took 2.9 s against 2.4 s for the box
+because heavy loads slow the player. The grab spring, speed caps and throw speed are mass-scaled
+by design (`GrabController.cs`), not tuned from real data.
 
 ## Build
 
@@ -184,4 +222,12 @@ the real movement, grab and task code. Used for the screenshots and checks in th
 
 ## Not done
 
-`NOT_DONE`
+- The Windows build target is configured and `BuildWindows` exists; see the build notes above for
+  whether a Windows binary was produced on this machine (built on macOS with the Mono backend, not
+  run on Windows here).
+- Replay is transform playback only; no deterministic physics re-simulation from the input log.
+- No VR controller implementation (interfaces only).
+- No gzip for logs, no multi-map, no save/resume of a session, no art/audio.
+- Session logs on WebGL are downloaded through the browser; the download button was not exercised
+  by the automated run (the same browser helper is used in a previous project).
+- Score ignores dropped or damaged items; there is no penalty model.

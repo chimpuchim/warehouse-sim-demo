@@ -49,6 +49,7 @@ namespace Warehouse
             World = WarehouseMap.Build();
             Player = FirstPersonController.Create(World.PlayerStart, World.PlayerStartYaw);
             Grab = GrabController.Attach(Player);
+            Grab.ContainerOf = item => World.Containers.FirstOrDefault(c => c.Zone.Contains(item));
             _keyboard = Player.gameObject.AddComponent<KeyboardMouseInput>();
             _scripted = new ScriptedInput();
             UseScriptedInput(false);
@@ -121,10 +122,12 @@ namespace Warehouse
             if (!play) SetCursorLocked(false);
             _thirdPerson.enabled = false;
             Player.Camera.enabled = true;
+            Player.BodyVisual.SetActive(false);
         }
 
         public void ShowMenu()
         {
+            if (Runner.Running) Runner.Abort(); // closes the log with outcome "aborted"
             if (Replay.Loaded) Replay.Unload();
             World.ResetItems();
             Player.Teleport(World.PlayerStart, World.PlayerStartYaw);
@@ -206,6 +209,7 @@ namespace Warehouse
             if (State != GameState.Replay) return;
             _thirdPerson.enabled = !_thirdPerson.enabled;
             Player.Camera.enabled = !_thirdPerson.enabled;
+            Player.BodyVisual.SetActive(_thirdPerson.enabled);
         }
 
         void DownloadLastLog()
@@ -294,12 +298,27 @@ namespace Warehouse
         {
             var head = Player.Head;
             var fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized;
-            var pos = head.position - fwd * 3.2f + Vector3.up * 1.6f;
+            var pos = head.position - fwd * 3.5f + Vector3.up * 1.4f;
             _thirdPerson.transform.position = pos;
-            _thirdPerson.transform.LookAt(head.position + fwd * 1.5f);
+            _thirdPerson.transform.LookAt(head.position + fwd * 2f - Vector3.up * 0.4f);
         }
 
-        void LateUpdate() => _scripted.EndFrame();
+        void LateUpdate()
+        {
+            _scripted.EndFrame();
+            if (State == GameState.Replay) FollowReplayHead();
+        }
+
+        /// <summary>The log drives the head; keep the body (capsule shown in third person) under it.</summary>
+        void FollowReplayHead()
+        {
+            var head = Player.Head;
+            var pos = head.position;
+            var rot = head.rotation;
+            float yaw = rot.eulerAngles.y;
+            Player.transform.SetPositionAndRotation(pos - FirstPersonController.HeadOffset, Quaternion.Euler(0, yaw, 0));
+            head.SetPositionAndRotation(pos, rot);
+        }
 
         void SetCursorLocked(bool on)
         {

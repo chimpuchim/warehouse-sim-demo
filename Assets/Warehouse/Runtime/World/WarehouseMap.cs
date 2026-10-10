@@ -133,15 +133,15 @@ namespace Warehouse
         {
             var bedMat = Mats.Solid(new Color(0.25f, 0.26f, 0.28f), 0.2f);
             var sideMat = Mats.Solid(new Color(0.85f, 0.85f, 0.88f), 0.3f);
-            const float bedY = 0.6f, bedW = 2.4f, bedL = 5f;
+            const float bedY = 0.6f, bedW = 2.4f, bedL = 5f, wallH = 2.3f; // 2.3 m clearance: the 1.8 m player walks in upright
             var center = new Vector3(12.5f, 0, 2f);
             var truck = new GameObject("Truck").transform;
             truck.SetParent(_root, false);
             Static("Bed", center + new Vector3(0, bedY - 0.1f, 0), new Vector3(bedW, 0.2f, bedL), bedMat, truck);
-            Static("Side L", center + new Vector3(-bedW / 2 - 0.05f, bedY + 0.9f, 0), new Vector3(0.1f, 1.8f, bedL), sideMat, truck);
-            Static("Side R", center + new Vector3(bedW / 2 + 0.05f, bedY + 0.9f, 0), new Vector3(0.1f, 1.8f, bedL), sideMat, truck);
-            Static("Front", center + new Vector3(0, bedY + 0.9f, bedL / 2 + 0.05f), new Vector3(bedW + 0.2f, 1.8f, 0.1f), sideMat, truck);
-            Static("Roof", center + new Vector3(0, bedY + 1.85f, 0), new Vector3(bedW + 0.2f, 0.1f, bedL), sideMat, truck);
+            Static("Side L", center + new Vector3(-bedW / 2 - 0.05f, bedY + wallH / 2, 0), new Vector3(0.1f, wallH, bedL), sideMat, truck);
+            Static("Side R", center + new Vector3(bedW / 2 + 0.05f, bedY + wallH / 2, 0), new Vector3(0.1f, wallH, bedL), sideMat, truck);
+            Static("Front", center + new Vector3(0, bedY + wallH / 2, bedL / 2 + 0.05f), new Vector3(bedW + 0.2f, wallH, 0.1f), sideMat, truck);
+            Static("Roof", center + new Vector3(0, bedY + wallH + 0.05f, 0), new Vector3(bedW + 0.2f, 0.1f, bedL), sideMat, truck);
             Static("Cab", center + new Vector3(0, 1.1f, bedL / 2 + 1.0f), new Vector3(bedW, 2.2f, 1.8f), Mats.Solid(new Color(0.75f, 0.15f, 0.15f), 0.5f), truck);
             foreach (float sx in new[] { -0.9f, 0.9f })
             foreach (float sz in new[] { -1.6f, 1.6f, 3.0f })
@@ -157,7 +157,7 @@ namespace Warehouse
             zone.transform.SetParent(truck, false);
             zone.Init("truck_bed", center + new Vector3(0, bedY + 0.9f, 0), new Vector3(bedW, 1.8f, bedL));
             _world.Zones.Add(zone);
-            Label("TRUCK", center + new Vector3(-bedW / 2 - 0.2f, bedY + 2.1f, 0), Quaternion.Euler(0, 90, 0));
+            Label("TRUCK", center + new Vector3(-bedW / 2 - 0.2f, bedY + wallH + 0.3f, 0), Quaternion.Euler(0, 90, 0));
         }
 
         static void BuildStagingPile()
@@ -193,13 +193,15 @@ namespace Warehouse
         /// <summary>Open-top bin made of five static plates; the zone is the inside volume.</summary>
         static void Tote(string id, string label, Vector3 at, Color color)
         {
-            var size = new Vector3(0.7f, 0.4f, 0.5f);
+            var size = new Vector3(0.8f, 0.4f, 0.6f);
             var mat = Mats.Solid(color, 0.35f);
             var t = OpenBox(label, at, size, 0.025f, mat);
+            // The zone reaches 35 cm above the rim so items stacked in a full tote still count.
             var zone = t.gameObject.AddComponent<Zone>();
-            zone.Init(id, at + new Vector3(0, size.y / 2, 0), new Vector3(size.x - 0.05f, size.y, size.z - 0.05f));
+            zone.Init(id, at + new Vector3(0, (size.y + 0.35f) / 2, 0), new Vector3(size.x - 0.05f, size.y + 0.35f, size.z - 0.05f));
             _world.Zones.Add(zone);
-            Label(label.ToUpperInvariant(), at + new Vector3(0, 0.05f, -size.z / 2 - 0.01f), Quaternion.identity, 0.12f);
+            // Stations sit along the south wall, so the player reads the sign from the north side.
+            Label(label.ToUpperInvariant(), at + new Vector3(0, size.y * 0.5f, size.z / 2 + 0.01f), Quaternion.Euler(0, 180, 0), 0.16f, Color.white);
         }
 
         /// <summary>Open box with a hinged lid plate; PACK tasks need it closed.</summary>
@@ -209,7 +211,7 @@ namespace Warehouse
             var mat = Mats.Solid(new Color(0.72f, 0.58f, 0.40f), 0.2f);
             var t = OpenBox(label, at, size, 0.03f, mat);
             var zone = t.gameObject.AddComponent<Zone>();
-            zone.Init(id, at + new Vector3(0, size.y / 2, 0), new Vector3(size.x - 0.06f, size.y, size.z - 0.06f));
+            zone.Init(id, at + new Vector3(0, (size.y + 0.25f) / 2, 0), new Vector3(size.x - 0.06f, size.y + 0.25f, size.z - 0.06f));
             _world.Zones.Add(zone);
 
             var hinge = new GameObject("Lid hinge").transform;
@@ -227,7 +229,7 @@ namespace Warehouse
             var container = t.gameObject.AddComponent<Container>();
             container.Init(zone, hinge, label);
             _world.Containers.Add(container);
-            Label(label.ToUpperInvariant(), at + new Vector3(0, 0.1f, -size.z / 2 - 0.01f), Quaternion.identity, 0.12f);
+            Label(label.ToUpperInvariant(), at + new Vector3(0, size.y * 0.5f, size.z / 2 + 0.01f), Quaternion.Euler(0, 180, 0), 0.16f, Color.white);
         }
 
         static Transform OpenBox(string name, Vector3 at, Vector3 size, float wall, Material mat)
@@ -256,7 +258,7 @@ namespace Warehouse
         }
 
         /// <summary>World-space sign using a small uGUI canvas (no extra shaders needed).</summary>
-        static void Label(string text, Vector3 at, Quaternion rot, float size = 0.4f)
+        static void Label(string text, Vector3 at, Quaternion rot, float size = 0.4f, Color? color = null)
         {
             var go = new GameObject("Label " + text, typeof(RectTransform), typeof(Canvas));
             go.transform.SetParent(_root, false);
@@ -266,12 +268,18 @@ namespace Warehouse
             canvas.renderMode = RenderMode.WorldSpace;
             var rt = go.GetComponent<RectTransform>();
             rt.sizeDelta = new Vector2(400, 60);
-            var t = go.AddComponent<UnityEngine.UI.Text>();
+            var child = new GameObject("Text", typeof(RectTransform));
+            child.transform.SetParent(go.transform, false);
+            var crt = child.GetComponent<RectTransform>();
+            crt.anchorMin = Vector2.zero;
+            crt.anchorMax = Vector2.one;
+            crt.offsetMin = crt.offsetMax = Vector2.zero;
+            var t = child.AddComponent<UnityEngine.UI.Text>();
             t.font = UI.Font;
             t.fontSize = 44;
             t.fontStyle = FontStyle.Bold;
             t.alignment = TextAnchor.MiddleCenter;
-            t.color = new Color(0.08f, 0.08f, 0.08f);
+            t.color = color ?? new Color(0.08f, 0.08f, 0.08f);
             t.text = text;
         }
 
@@ -298,12 +306,18 @@ namespace Warehouse
             go.GetComponent<Renderer>().sharedMaterial = ItemMaterial(def);
 
             // Cylinders get a box collider: the capsule the primitive ships with would roll on its end caps.
-            Collider col = go.GetComponent<Collider>();
-            if (def.Shape == ItemShape.Cylinder)
+            // Replace the primitive's collider with one added explicitly: code stripping removes
+            // collider classes that are only ever created through CreatePrimitive.
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+            Collider col;
+            if (def.Shape == ItemShape.Capsule)
             {
-                Object.DestroyImmediate(col);
-                col = go.AddComponent<BoxCollider>();
+                var capsule = go.AddComponent<CapsuleCollider>();
+                capsule.height = 2f;
+                capsule.radius = 0.5f;
+                col = capsule;
             }
+            else col = go.AddComponent<BoxCollider>();
             col.sharedMaterial = ItemCatalog.Material(def.Surface);
 
             var rb = go.AddComponent<Rigidbody>();

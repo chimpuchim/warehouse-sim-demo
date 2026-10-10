@@ -15,9 +15,14 @@ namespace Warehouse
         [SerializeField] float _minDistance = 0.8f;
         [SerializeField] float _maxDistance = 2.6f;
         [SerializeField] float _spring = 14f;
-        [SerializeField] float _breakDistance = 1.6f;
+        [SerializeField] float _breakDistance = 1.2f;
+        [SerializeField] float _breakSeconds = 0.6f;
 
         public IGrabInput Input { get; set; }
+        /// <summary>Resolves the container an item is sitting in, so looking at the contents still targets the lid.</summary>
+        public Func<Interactable, Container> ContainerOf { get; set; }
+        /// <summary>Name of the first collider under the crosshair (diagnostics).</summary>
+        public string HitName { get; private set; } = "";
         public Interactable Held { get; private set; }
         public Interactable Hovered { get; private set; }
         public Container HoveredContainer { get; private set; }
@@ -34,7 +39,7 @@ namespace Warehouse
         float _holdDistance;
         Quaternion _holdLocalRot;
         int _buttons;
-        bool _interactRequested;
+        float _stuckSince = -1f;
 
         public static GrabController Attach(FirstPersonController player)
         {
@@ -82,6 +87,11 @@ namespace Warehouse
 
         bool _wasGrabHeld;
 
+        /// <summary>Distance from the held object to its hold point (0 when nothing is held).</summary>
+        public float Lag { get; private set; }
+
+        public void SetHoldDistance(float d) => _holdDistance = Mathf.Clamp(d, _minDistance, _maxDistance);
+
         /// <summary>Called by the game flow when the interact key is pressed.</summary>
         public void Interact()
         {
@@ -95,10 +105,23 @@ namespace Warehouse
         {
             Interactable item = null;
             Container container = null;
-            if (Physics.Raycast(_cam.position, _cam.forward, out var hit, _reach, ~0, QueryTriggerInteraction.Ignore))
+            HitName = "";
+            // The player is on the Ignore Raycast layer: the ray starts inside its own capsule and
+            // would otherwise hit it when looking down.
+            var hits = Physics.RaycastAll(_cam.position, _cam.forward, _reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            if (hits.Length > 0)
             {
-                if (hit.rigidbody != null) hit.rigidbody.TryGetComponent(out item);
-                if (item == null) container = hit.collider.GetComponentInParent<Container>();
+                Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+                var first = hits[0];
+                HitName = first.collider.name + (first.collider.transform.parent != null ? " < " + first.collider.transform.parent.name : "");
+                if (first.rigidbody != null) first.rigidbody.TryGetComponent(out item);
+                // The lid target: the first container along the ray, or the container the hovered item sits in.
+                foreach (var h in hits)
+                {
+                    container = h.collider.GetComponentInParent<Container>();
+                    if (container != null) break;
+                }
+                if (container == null && item != null && ContainerOf != null) container = ContainerOf(item);
             }
             if (item != Hovered)
             {
@@ -120,6 +143,7 @@ namespace Warehouse
             rb.angularDamping = 4f;
             _holdDistance = Mathf.Clamp(Vector3.Distance(_cam.position, rb.position), _minDistance, _maxDistance);
             _holdLocalRot = Quaternion.Inverse(Quaternion.Euler(0, _player.Yaw, 0)) * rb.rotation;
+            _stuckSince = -1f;
             Physics.IgnoreCollision(Held.Collider, _player.Controller, true);
             _player.SpeedMultiplier = Mathf.Lerp(1f, 0.55f, Mathf.InverseLerp(5f, 30f, rb.mass));
             Grabbed?.Invoke(Held);
@@ -131,6 +155,7 @@ namespace Warehouse
             var item = Held;
             var rb = item.Body;
             Held = null;
+            Lag = 0f;
             item.IsHeld = false;
             rb.useGravity = true;
             rb.linearDamping = 0.05f;
@@ -161,12 +186,22 @@ namespace Warehouse
             if (target.y < halfHeight + 0.02f) target.y = halfHeight + 0.02f;
 
             var toTarget = target - rb.position;
+            Lag = toTarget.magnitude;
+            float maxSpeed = Mathf.Lerp(10f, 2.5f, Mathf.InverseLerp(1f, 30f, rb.mass));
+
+            // Drop only when the object cannot follow for a while (blocked by geometry), not on a
+            // fast turn: a 90 degree flick moves the hold point further than the break distance
+            // for a few ticks and a heavy object needs up to a second to catch up.
             if (toTarget.magnitude > _breakDistance)
             {
-                Release(false);
-                return;
+                if (_stuckSince < 0f) _stuckSince = Time.time;
+                else if (Time.time - _stuckSince > _breakSeconds + _breakDistance / maxSpeed)
+                {
+                    Release(false);
+                    return;
+                }
             }
-            float maxSpeed = Mathf.Lerp(10f, 2.5f, Mathf.InverseLerp(1f, 30f, rb.mass));
+            else _stuckSince = -1f;
             rb.linearVelocity = Vector3.ClampMagnitude(toTarget * _spring, maxSpeed);
 
             var desired = Quaternion.Euler(0, _player.Yaw, 0) * _holdLocalRot;

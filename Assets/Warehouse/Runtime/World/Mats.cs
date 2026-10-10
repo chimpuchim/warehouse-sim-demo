@@ -4,18 +4,33 @@ using UnityEngine.Rendering;
 namespace Warehouse
 {
     /// <summary>
-    /// Procedural materials built from the render pipeline's default Lit material, so no shader
-    /// is stripped from the build and the project needs no art files.
+    /// Procedural materials cloned from one URP Lit material asset in Resources (created by the
+    /// editor setup), so the shader is never stripped from a build and the project needs no art files.
     /// </summary>
     public static class Mats
     {
+        public const string BaseMaterialResource = "WarehouseLit";
+        static Material _base;
+
+        static Material Base
+        {
+            get
+            {
+                if (_base != null) return _base;
+                _base = Resources.Load<Material>(BaseMaterialResource);
+                if (_base == null && GraphicsSettings.currentRenderPipeline != null) _base = GraphicsSettings.currentRenderPipeline.defaultMaterial;
+                if (_base == null) _base = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                return _base;
+            }
+        }
+
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         static readonly int BaseMap = Shader.PropertyToID("_BaseMap");
         static readonly int Smoothness = Shader.PropertyToID("_Smoothness");
 
         public static Material Solid(Color color, float smoothness = 0.25f)
         {
-            var m = new Material(GraphicsSettings.currentRenderPipeline.defaultMaterial);
+            var m = new Material(Base);
             m.SetColor(BaseColor, color);
             m.SetFloat(Smoothness, smoothness);
             return m;

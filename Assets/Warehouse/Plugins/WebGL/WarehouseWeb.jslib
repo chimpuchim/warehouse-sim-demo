@@ -31,6 +31,9 @@ mergeInto(LibraryManager.library, {
     document.body.appendChild(input);
     input.click();
   },
+  WarehouseSetStatus: function (jsonPtr) {
+    window.warehouseStatus = UTF8ToString(jsonPtr);
+  },
   WarehouseNotifyReady: function () {
     if (window.onWarehouseReady) window.onWarehouseReady();
   }

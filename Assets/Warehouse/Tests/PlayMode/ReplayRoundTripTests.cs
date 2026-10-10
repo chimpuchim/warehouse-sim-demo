@@ -55,8 +55,9 @@ namespace Warehouse.Tests
             Assert.AreEqual(world.Items.Count + 1, log.ObjectCount);
             Assert.Less(log.Ticks[Ticks - 1].ids.Length, log.ObjectCount, "boxes at rest should stop being written");
 
-            // The boxes really moved: a dropped box must be lower at the end than at the start.
-            Assert.Less(log.Position(Ticks - 1, 1).y, log.Position(0, 1).y - 0.5f);
+            // The boxes really moved: the first dropped box (item index 4, id 5) must be lower at the end than at the start.
+            int dropped = world.Items[4].TrackId;
+            Assert.Less(log.Position(Ticks - 1, dropped).y, log.Position(0, dropped).y - 0.5f);
 
             // Scramble the scene, then replay and compare at every tick.
             foreach (var item in world.Items) item.transform.position += new Vector3(5, 5, 5);
@@ -70,10 +71,10 @@ namespace Warehouse.Tests
                 {
                     int id = item.TrackId;
                     float dp = Vector3.Distance(item.transform.position, log.Position(t, id));
-                    float dr = Quaternion.Angle(item.transform.rotation, log.Rotation(t, id));
+                    float dr = QuaternionError(item.transform.rotation, log.Rotation(t, id));
                     worst = Mathf.Max(worst, dp);
                     Assert.LessOrEqual(dp, Tolerance, $"tick {t} {item.name} position");
-                    Assert.LessOrEqual(dr, 0.05f, $"tick {t} {item.name} rotation (deg)");
+                    Assert.LessOrEqual(dr, 1e-4f, $"tick {t} {item.name} rotation (max quaternion component error)");
                 }
             }
             Debug.Log($"replay round trip: {Ticks} ticks, {world.Items.Count} objects, worst position error {worst * 1000f:0.000} mm, log {text.Length} bytes");
@@ -110,7 +111,7 @@ namespace Warehouse.Tests
 
             // Four medium boxes stacked exactly on each other.
             var def = ItemCatalog.Get("box_medium");
-            for (int i = 0; i < 4; i++) world.Items.Add(Spawn(def, new Vector3(0, i * def.Size.y + def.Size.y / 2, 0), Quaternion.identity));
+            for (int i = 0; i < 4; i++) world.Items.Add(Spawn(def, new Vector3(0, i * (def.Size.y + 0.001f) + def.Size.y / 2, 0), Quaternion.identity));
             if (stackOnly) return world;
 
             // Plus boxes dropped from height with random orientations so there is real motion to log.
@@ -119,6 +120,16 @@ namespace Warehouse.Tests
             for (int i = 0; i < 6; i++)
                 world.Items.Add(Spawn(small, new Vector3(Random.Range(-1f, 1f), 2f + i * 0.4f, Random.Range(-1f, 1f)), Random.rotation));
             return world;
+        }
+
+        /// <summary>Largest component difference between two unit quaternions (q and -q are the same rotation).
+        /// Quaternion.Angle is not used because acos loses precision near 1 and reports 0.2 deg for identical rotations.</summary>
+        static float QuaternionError(Quaternion a, Quaternion b)
+        {
+            a.Normalize();
+            b.Normalize();
+            if (Quaternion.Dot(a, b) < 0) b = new Quaternion(-b.x, -b.y, -b.z, -b.w);
+            return Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y), Mathf.Abs(a.z - b.z), Mathf.Abs(a.w - b.w));
         }
 
         GameObject NewObject(string name)

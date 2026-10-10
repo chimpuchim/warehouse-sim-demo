@@ -15,8 +15,11 @@ namespace Warehouse
         [SerializeField] float _gravity = -20f;
         [SerializeField] float _pushForce = 2.5f;
 
+        public static readonly Vector3 HeadOffset = new Vector3(0, 1.65f, 0);
         public IPlayerInput Input { get; set; }
         public Transform Head { get; private set; }
+        /// <summary>Capsule mesh shown only by the third-person replay camera.</summary>
+        public GameObject BodyVisual { get; private set; }
         public Camera Camera { get; private set; }
         public CharacterController Controller { get; private set; }
         /// <summary>Set by the grab system while carrying something heavy.</summary>
@@ -33,6 +36,7 @@ namespace Warehouse
         public static FirstPersonController Create(Vector3 position, float yaw)
         {
             var go = new GameObject("Player");
+            go.layer = 2; // Ignore Raycast: the grab ray starts inside this capsule
             var cc = go.AddComponent<CharacterController>();
             cc.radius = 0.35f;
             cc.height = 1.8f;
@@ -45,7 +49,7 @@ namespace Warehouse
 
             var head = new GameObject("Head");
             head.transform.SetParent(go.transform, false);
-            head.transform.localPosition = new Vector3(0, 1.65f, 0);
+            head.transform.localPosition = HeadOffset;
             var cam = head.AddComponent<Camera>();
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 120f;
@@ -54,6 +58,16 @@ namespace Warehouse
             head.AddComponent<AudioListener>();
             fpc.Head = head.transform;
             fpc.Camera = cam;
+
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            Object.DestroyImmediate(body.GetComponent<Collider>());
+            body.transform.SetParent(go.transform, false);
+            body.transform.localPosition = new Vector3(0, 0.9f, 0);
+            body.transform.localScale = new Vector3(0.6f, 0.85f, 0.6f);
+            body.GetComponent<Renderer>().sharedMaterial = Mats.Solid(new Color(0.95f, 0.55f, 0.1f), 0.3f);
+            body.SetActive(false);
+            fpc.BodyVisual = body;
             return fpc;
         }
 
@@ -64,6 +78,7 @@ namespace Warehouse
             Controller.enabled = false;
             transform.SetPositionAndRotation(position, Quaternion.Euler(0, yaw, 0));
             _pitch = pitch;
+            Head.localPosition = HeadOffset; // the replay drives the head in world space; put it back on the body
             Head.localRotation = Quaternion.Euler(_pitch, 0, 0);
             _velocity = Vector3.zero;
             Controller.enabled = true;

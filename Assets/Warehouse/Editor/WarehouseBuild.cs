@@ -20,10 +20,23 @@ namespace Warehouse.EditorTools
         [MenuItem("Warehouse/Set Up Project")]
         public static void Setup()
         {
+            CreateBaseMaterial();
             CreateScene();
             ApplyPlayerSettings();
             AssetDatabase.SaveAssets();
             Debug.Log("Warehouse setup done.");
+        }
+
+        /// <summary>One URP Lit material in Resources; every runtime material is cloned from it.</summary>
+        static void CreateBaseMaterial()
+        {
+            const string path = "Assets/Warehouse/Resources/" + Mats.BaseMaterialResource + ".mat";
+            if (File.Exists(path)) return;
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) throw new Exception("URP Lit shader not found");
+            AssetDatabase.CreateAsset(new Material(shader), path);
+            AssetDatabase.ImportAsset(path);
         }
 
         static void CreateScene()

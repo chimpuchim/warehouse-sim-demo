@@ -10,7 +10,16 @@ namespace Warehouse
         [DllImport("__Internal")] static extern void WarehouseDownloadText(string name, string text);
         [DllImport("__Internal")] static extern void WarehouseOpenTextFile(string gameObject, string method);
         [DllImport("__Internal")] static extern void WarehouseNotifyReady();
+        [DllImport("__Internal")] static extern void WarehouseSetStatus(string json);
 #endif
+
+        /// <summary>Developer mode: publishes a status string to window.warehouseStatus for page scripts.</summary>
+        public static void SetStatus(string json)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WarehouseSetStatus(json);
+#endif
+        }
 
         public static void DownloadText(string fileName, string text)
         {
