@@ -1,0 +1,15 @@
+{
+  "id": "load_truck_a",
+  "type": "LOAD",
+  "title": "Load truck A",
+  "description": "Carry the large boxes and crates from the staging pile up the ramp onto the truck bed.",
+  "timeLimitSeconds": 180,
+  "baseScore": 200,
+  "timeBonusPerSecond": 3,
+  "targetZone": "truck_bed",
+  "requireClosed": false,
+  "requiredItems": [
+    { "item": "box_large", "count": 2 },
+    { "item": "crate", "count": 2 }
+  ]
+}

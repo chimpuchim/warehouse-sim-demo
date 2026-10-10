@@ -1,0 +1,16 @@
+{
+  "id": "pick_1043",
+  "type": "PICK",
+  "title": "Pick order #1043 (mixed)",
+  "description": "A bigger order: small boxes, spare parts and a bottle into Tote B.",
+  "timeLimitSeconds": 180,
+  "baseScore": 150,
+  "timeBonusPerSecond": 2,
+  "targetZone": "tote_b",
+  "requireClosed": false,
+  "requiredItems": [
+    { "item": "box_small", "count": 3 },
+    { "item": "part", "count": 2 },
+    { "item": "bottle", "count": 1 }
+  ]
+}

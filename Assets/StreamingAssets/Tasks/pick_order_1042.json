@@ -1,0 +1,15 @@
+{
+  "id": "pick_1042",
+  "type": "PICK",
+  "title": "Pick order #1042",
+  "description": "Collect the order from racks A-C and drop every item into Tote A at the pick station.",
+  "timeLimitSeconds": 120,
+  "baseScore": 100,
+  "timeBonusPerSecond": 2,
+  "targetZone": "tote_a",
+  "requireClosed": false,
+  "requiredItems": [
+    { "item": "box_small", "count": 2 },
+    { "item": "can", "count": 1 }
+  ]
+}
