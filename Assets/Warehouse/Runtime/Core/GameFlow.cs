@@ -299,6 +299,11 @@ namespace Warehouse
             var head = Player.Head;
             var fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized;
             var pos = head.position - fwd * 3.5f + Vector3.up * 1.4f;
+            // Keep the chase camera inside the room so it never ends up behind a wall.
+            const float margin = 0.6f;
+            pos.x = Mathf.Clamp(pos.x, -WarehouseMap.Width / 2 + margin, WarehouseMap.Width / 2 - margin);
+            pos.z = Mathf.Clamp(pos.z, -WarehouseMap.Depth / 2 + margin, WarehouseMap.Depth / 2 - margin);
+            pos.y = Mathf.Min(pos.y, 3.6f);
             _thirdPerson.transform.position = pos;
             _thirdPerson.transform.LookAt(head.position + fwd * 2f - Vector3.up * 0.4f);
         }

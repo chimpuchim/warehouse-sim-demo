@@ -8,6 +8,13 @@ primitive art, mouse + keyboard only.
 **Try it:** _(link added when the WebGL build is published)_ — click the game to lock the mouse.
 Best in a desktop browser; the first load is about 14 MB.
 
+![Pick aisle](docs/screenshots/02-pick-start.jpg)
+![Tote filled](docs/screenshots/04-tote-filled.jpg)
+![Carrying a crate to the truck](docs/screenshots/05-carry-crate.jpg)
+![Replay, third-person camera](docs/screenshots/09-replay-third-person.jpg)
+
+More in `docs/screenshots/`.
+
 ## What is in it
 
 - **First-person controls** — WASD, mouse look, Shift sprint, Space jump (CharacterController).
@@ -201,6 +208,10 @@ python3 tools/serve.py 8790      # serve Build/WebGL on http://127.0.0.1:8790/
 The build method creates the scene and applies the player settings on first run.
 Unity 6000.0.77f1, Universal RP, Input System, uGUI. Physics and logging run at a fixed 50 Hz.
 
+Build results on 2026-10-10 (macOS, Apple silicon): WebGL 15 MB (gzip, decompression fallback on),
+Windows x64 player 95 MB with the Mono backend (built, not run: no Windows machine was available).
+Both builds are in `Build/`, which is not committed.
+
 ## Developer mode
 
 `?dev=1` on the WebGL URL (always on in the Editor) adds a `Dev` object that accepts commands via
@@ -222,9 +233,7 @@ the real movement, grab and task code. Used for the screenshots and checks in th
 
 ## Not done
 
-- The Windows build target is configured and `BuildWindows` exists; see the build notes above for
-  whether a Windows binary was produced on this machine (built on macOS with the Mono backend, not
-  run on Windows here).
+- The Windows build compiles (see Build) but has not been run on a Windows machine.
 - Replay is transform playback only; no deterministic physics re-simulation from the input log.
 - No VR controller implementation (interfaces only).
 - No gzip for logs, no multi-map, no save/resume of a session, no art/audio.
