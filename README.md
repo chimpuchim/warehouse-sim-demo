@@ -5,7 +5,7 @@ interaction (grab, carry, rotate, throw, stack), data-driven PICK / PACK / LOAD 
 fixed-timestep gameplay logger with an exact replay. It is a prototype, not a product: one map,
 primitive art, mouse + keyboard only.
 
-**Try it:** _(link added when the WebGL build is published)_ — click the game to lock the mouse.
+**Try it:** https://chimpuchim.github.io/warehouse-sim-demo/ — click the game to lock the mouse.
 Best in a desktop browser; the first load is about 14 MB.
 
 ![Pick aisle](docs/screenshots/02-pick-start.jpg)

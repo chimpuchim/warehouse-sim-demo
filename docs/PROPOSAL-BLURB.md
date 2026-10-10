@@ -9,4 +9,5 @@ transforms with a scrubbable timeline. A PlayMode test records real physics, rep
 every object at every tick; the README lists what is simplified (single primitive map, transform
 playback rather than re-simulation, mouse/keyboard only).
 
-Live demo: (link after publishing)   Source: (repo link after publishing)
+Live demo: https://chimpuchim.github.io/warehouse-sim-demo/
+Source: https://github.com/chimpuchim/warehouse-sim-demo
