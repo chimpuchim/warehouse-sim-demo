@@ -1,0 +1,15 @@
+{
+  "id": "pack_2077",
+  "type": "PACK",
+  "title": "Pack order #2077",
+  "description": "Put the parts and cans into Pack box A on the pack table, then close the lid (F).",
+  "timeLimitSeconds": 150,
+  "baseScore": 150,
+  "timeBonusPerSecond": 2,
+  "targetZone": "pack_box_a",
+  "requireClosed": true,
+  "requiredItems": [
+    { "item": "part", "count": 2 },
+    { "item": "can", "count": 2 }
+  ]
+}
